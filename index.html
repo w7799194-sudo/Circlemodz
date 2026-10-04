@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>CircleModzz</title>
+<link id="tabIcon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='16' fill='%23050805'/><circle cx='32' cy='32' r='22' fill='%234cff4c'/><circle cx='24' cy='25' r='5' fill='%23050805'/><circle cx='40' cy='25' r='5' fill='%23050805'/><path d='M20 39 Q32 51 44 39' fill='none' stroke='%23050805' stroke-width='5' stroke-linecap='round'/></svg>">
 <style>
 *{box-sizing:border-box}body{margin:0;background:#050805;color:#f1fff1;font-family:Arial,sans-serif}header{padding:22px 6%;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #173d17}nav a{color:#b9ffb9;text-decoration:none;margin-left:22px}.logo{font-size:24px;font-weight:900;color:#4cff4c}.hero{padding:80px 6%;background:linear-gradient(135deg,#071007,#0d260d)}h1{font-size:64px;margin:0 0 12px}.green{color:#4cff4c}.hero p{color:#a9bda9;font-size:18px}.btn{display:inline-block;margin:18px 10px 0 0;padding:13px 20px;border-radius:9px;background:#39e639;color:#041004;text-decoration:none;font-weight:bold}.btn.alt{background:#102110;color:#baffba;border:1px solid #286228}.section{padding:55px 6%}.search{width:100%;max-width:500px;padding:14px;border-radius:9px;border:1px solid #245224;background:#0b120b;color:white;margin-bottom:25px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}.card{background:#0b120b;border:1px solid #1d461d;border-radius:14px;padding:22px}.card h3{margin-top:0}.card p{color:#9eaf9e;line-height:1.5}.download{display:inline-block;padding:10px 15px;border-radius:8px;background:#35db35;color:#041004;text-decoration:none;font-weight:bold}footer{padding:30px 6%;border-top:1px solid #173d17;color:#7e927e}
 </style>
@@ -22,5 +23,34 @@
 </div></section>
 <section class="section" id="about"><h2>About CircleModzz</h2><p>VR mods and tools made for the community.</p></section>
 <footer>© CircleModzz</footer>
-<script>const s=document.getElementById('search'),cards=[...document.querySelectorAll('.card')];s.addEventListener('input',()=>{const q=s.value.toLowerCase();cards.forEach(c=>c.style.display=c.innerText.toLowerCase().includes(q)?'block':'none')});</script>
+<script>
+const s=document.getElementById('search'),cards=[...document.querySelectorAll('.card')];
+s.addEventListener('input',()=>{const q=s.value.toLowerCase();cards.forEach(c=>c.style.display=c.innerText.toLowerCase().includes(q)?'block':'none')});
+
+const icon=document.getElementById('tabIcon');
+const frames=[
+  ['#4cff4c','#071007',1],
+  ['#7dff5f','#0a180a',2],
+  ['#31d931','#061006',3],
+  ['#b0ff8a','#102010',2]
+];
+let f=0;
+setInterval(()=>{
+  const [green,bg,spin]=frames[f++%frames.length];
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="16" fill="${bg}"/>
+  <g transform="rotate(${spin*18} 32 32)">
+    <circle cx="32" cy="32" r="22" fill="${green}"/>
+    <circle cx="24" cy="25" r="5" fill="${bg}"/>
+    <circle cx="40" cy="25" r="5" fill="${bg}"/>
+    <path d="M20 39 Q32 51 44 39" fill="none" stroke="${bg}" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  </svg>`;
+  icon.href='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+},420);
+
+const titles=['CircleModzz','⚡ CircleModzz','🟢 CircleModzz','🔥 CircleModzz'];
+let t=0;
+setInterval(()=>{document.title=titles[t++%titles.length]},900);
+</script>
 </body></html>

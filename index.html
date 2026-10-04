@@ -47,19 +47,24 @@ function setFavicon(angle){const svg=`<svg xmlns="http://www.w3.org/2000/svg" vi
 let angle=0;setFavicon(angle);setInterval(()=>{angle=(angle+30)%360;setFavicon(angle)},300);
 
 const secretLogo=document.getElementById('secretLogo'),secretGame=document.getElementById('secretGame'),gameClose=document.getElementById('gameClose'),monkeyBtn=document.getElementById('monkeyBtn'),scoreEl=document.getElementById('clickScore');
-let logoClicks=0,score=0,resetTimer;
-secretLogo.addEventListener('click',()=>{
+let logoClicks=0,score=0;
+function openSecretGame(){
+  logoClicks=0; score=0; scoreEl.textContent='0';
+  secretGame.style.display='flex';
+  secretGame.setAttribute('aria-hidden','false');
+}
+function countSecretTap(e){
+  if(e) e.preventDefault();
   logoClicks++;
-  clearTimeout(resetTimer);
-  resetTimer=setTimeout(()=>logoClicks=0,1800);
-  if(logoClicks>=7){
-    logoClicks=0; score=0; scoreEl.textContent='0';
-    secretGame.style.display='flex';
-    secretGame.setAttribute('aria-hidden','false');
-  }
-});
-monkeyBtn.addEventListener('click',()=>{score++;scoreEl.textContent=score});
-gameClose.addEventListener('click',()=>{secretGame.style.display='none';secretGame.setAttribute('aria-hidden','true')});
-secretGame.addEventListener('click',e=>{if(e.target===secretGame)gameClose.click()});
+  if(logoClicks>=7) openSecretGame();
+}
+secretLogo.addEventListener('pointerup',countSecretTap);
+secretLogo.addEventListener('touchend',countSecretTap,{passive:false});
+secretLogo.addEventListener('click',()=>{});
+monkeyBtn.addEventListener('pointerup',e=>{e.preventDefault();score++;scoreEl.textContent=score});
+monkeyBtn.addEventListener('touchend',e=>{e.preventDefault();score++;scoreEl.textContent=score},{passive:false});
+gameClose.addEventListener('pointerup',e=>{e.preventDefault();secretGame.style.display='none';secretGame.setAttribute('aria-hidden','true')});
+secretGame.addEventListener('pointerup',e=>{if(e.target===secretGame){secretGame.style.display='none';secretGame.setAttribute('aria-hidden','true')}});
+
 </script>
 </body></html>

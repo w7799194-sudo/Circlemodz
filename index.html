@@ -38,6 +38,16 @@
       <input class="nameInput" id="adminPassword" type="password" maxlength="32" placeholder="Admin password">
     </div>
     <div class="muted" id="loginStatus"></div>
+    <div id="adminPanel" style="display:none;margin:12px auto 18px;padding:14px;border:1px solid #4cff4c;border-radius:14px;background:#071007;max-width:520px">
+      <h3 style="margin:0 0 10px;color:#4cff4c">🛡️ ADMIN PANEL</h3>
+      <div class="nameRow">
+        <button class="startBtn" id="infPoints">∞ INFINITE POINTS</button>
+        <button class="startBtn" id="plus1000">+1,000</button>
+        <button class="startBtn" id="plus10000">+10,000</button>
+        <button class="gameClose" id="resetScore">RESET</button>
+      </div>
+      <div class="muted">Admin powers only appear after the correct password.</div>
+    </div>
     <div class="gameScore">Clicks: <span id="clickScore">0</span></div>
     <button class="monkeyBtn" id="monkeyBtn" aria-label="Click the monkey">
       <img src="https://preview.redd.it/i-will-draw-anyones-gorilla-tag-avatar-v0-cpgd1eiuinwc1.jpeg?width=1080&crop=smart&auto=webp&s=e6097812e9aa051f7b8e4b1a238ca7c2276613d0" alt="Gorilla Tag monkey">
@@ -59,8 +69,8 @@ let tabStep=0;setInterval(()=>{document.title=tabFrames[tabStep++%tabFrames.leng
 function setFavicon(angle){const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#050805"/><g transform="rotate(${angle} 32 32)"><circle cx="32" cy="32" r="23" fill="#4cff4c"/><circle cx="24" cy="25" r="5" fill="#050805"/><circle cx="40" cy="25" r="5" fill="#050805"/><path d="M20 40 Q32 50 44 40" fill="none" stroke="#050805" stroke-width="5" stroke-linecap="round"/></g></svg>`;const old=document.querySelector('link[data-circle-favicon]');if(old)old.remove();const link=document.createElement('link');link.rel='icon';link.type='image/svg+xml';link.dataset.circleFavicon='1';link.href='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);document.head.appendChild(link)}
 let angle=0;setFavicon(angle);setInterval(()=>{angle=(angle+30)%360;setFavicon(angle)},300);
 
-const secretLogo=document.getElementById('secretLogo'),secretGame=document.getElementById('secretGame'),gameClose=document.getElementById('gameClose'),monkeyBtn=document.getElementById('monkeyBtn'),scoreEl=document.getElementById('clickScore'),usernameInput=document.getElementById('usernameInput'),startGame=document.getElementById('startGame'),leaderboardList=document.getElementById('leaderboardList'),leaderboardStatus=document.getElementById('leaderboardStatus'),adminRow=document.getElementById('adminRow'),adminPassword=document.getElementById('adminPassword'),loginStatus=document.getElementById('loginStatus');
-let logoClicks=0,score=0,currentUser='',playing=false,isAdmin=false;
+const secretLogo=document.getElementById('secretLogo'),secretGame=document.getElementById('secretGame'),gameClose=document.getElementById('gameClose'),monkeyBtn=document.getElementById('monkeyBtn'),scoreEl=document.getElementById('clickScore'),usernameInput=document.getElementById('usernameInput'),startGame=document.getElementById('startGame'),leaderboardList=document.getElementById('leaderboardList'),leaderboardStatus=document.getElementById('leaderboardStatus'),adminRow=document.getElementById('adminRow'),adminPassword=document.getElementById('adminPassword'),loginStatus=document.getElementById('loginStatus'),adminPanel=document.getElementById('adminPanel'),infPoints=document.getElementById('infPoints'),plus1000=document.getElementById('plus1000'),plus10000=document.getElementById('plus10000'),resetScore=document.getElementById('resetScore');
+let logoClicks=0,score=0,currentUser='',playing=false,isAdmin=false,infinitePoints=false;
 const ONLINE_KEY='circlemodzz-online-leaderboard-8f4c9d2a6e1b3c7d2a9f4b7e';
 const ONLINE_GET='https://api.keyval.org/get/'+ONLINE_KEY;
 const ADMIN_HASHES={
@@ -116,10 +126,11 @@ async function refreshLeaderboard(){
   return board;
 }
 function openSecretGame(){
-  logoClicks=0;score=0;scoreEl.textContent='0';playing=false;isAdmin=false;
+  logoClicks=0;score=0;scoreEl.textContent='0';playing=false;isAdmin=false;infinitePoints=false;
   usernameInput.value=localStorage.getItem('circlemodzzUsername')||'';
   adminPassword.value='';loginStatus.textContent='';
   adminRow.style.display=isAdminName(usernameInput.value.trim())?'flex':'none';
+  adminPanel.style.display='none';
   monkeyBtn.disabled=true;
   secretGame.style.display='flex';
   secretGame.setAttribute('aria-hidden','false');
@@ -141,9 +152,11 @@ async function startClicker(){
       return;
     }
     isAdmin=true;
+    adminPanel.style.display='block';
     loginStatus.textContent='🛡️ ADMIN MODE';
   }else{
     isAdmin=false;
+    adminPanel.style.display='none';
     adminRow.style.display='none';
     loginStatus.textContent='';
   }
@@ -153,7 +166,12 @@ async function startClicker(){
 }
 async function updateScore(){
   if(!playing)return;
-  score++;scoreEl.textContent=score;
+  if(infinitePoints){
+    score=999999999;
+    scoreEl.textContent='∞';
+  }else{
+    score++;scoreEl.textContent=score;
+  }
   if(score%3!==0)return;
   const board=await getOnlineLeaderboard();
   const existing=board.find(x=>x.name.toLowerCase()===currentUser.toLowerCase());
@@ -191,5 +209,19 @@ secretGame.addEventListener('pointerup',async e=>{if(e.target===secretGame){awai
 usernameInput.addEventListener('input',()=>{adminRow.style.display=isAdminName(usernameInput.value.trim())?'flex':'none';loginStatus.textContent=''});
 adminPassword.addEventListener('keydown',e=>{if(e.key==='Enter')startClicker()});
 usernameInput.addEventListener('keydown',e=>{if(e.key==='Enter')startClicker()});
+
+function adminAdd(amount){
+  if(!isAdmin||!playing)return;
+  if(infinitePoints){
+    score=999999999;scoreEl.textContent='∞';
+  }else{
+    score=Math.min(999999999,score+amount);scoreEl.textContent=score;
+  }
+  finalSync();
+}
+infPoints.addEventListener('pointerup',e=>{e.preventDefault();if(!isAdmin||!playing)return;infinitePoints=!infinitePoints;infPoints.textContent=infinitePoints?'∞ INFINITE: ON':'∞ INFINITE POINTS';if(infinitePoints){score=999999999;scoreEl.textContent='∞'}else{score=0;scoreEl.textContent='0'}finalSync()});
+plus1000.addEventListener('pointerup',e=>{e.preventDefault();adminAdd(1000)});
+plus10000.addEventListener('pointerup',e=>{e.preventDefault();adminAdd(10000)});
+resetScore.addEventListener('pointerup',e=>{e.preventDefault();if(!isAdmin||!playing)return;infinitePoints=false;score=0;scoreEl.textContent='0';infPoints.textContent='∞ INFINITE POINTS';finalSync()});
 </script>
 </body></html>

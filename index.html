@@ -41,7 +41,7 @@
     <div class="leaderboard">
       <h3>🏆 Leaderboard</h3>
       <ol id="leaderboardList"><li>No scores yet</li></ol>
-      <div class="muted">Scores are saved on this browser.</div>
+      <div class="muted" id="leaderboardStatus">🌐 Online leaderboard</div>
     </div>
     <button class="gameClose" id="gameClose">CLOSE</button>
   </div>
@@ -55,42 +55,91 @@ let tabStep=0;setInterval(()=>{document.title=tabFrames[tabStep++%tabFrames.leng
 function setFavicon(angle){const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#050805"/><g transform="rotate(${angle} 32 32)"><circle cx="32" cy="32" r="23" fill="#4cff4c"/><circle cx="24" cy="25" r="5" fill="#050805"/><circle cx="40" cy="25" r="5" fill="#050805"/><path d="M20 40 Q32 50 44 40" fill="none" stroke="#050805" stroke-width="5" stroke-linecap="round"/></g></svg>`;const old=document.querySelector('link[data-circle-favicon]');if(old)old.remove();const link=document.createElement('link');link.rel='icon';link.type='image/svg+xml';link.dataset.circleFavicon='1';link.href='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);document.head.appendChild(link)}
 let angle=0;setFavicon(angle);setInterval(()=>{angle=(angle+30)%360;setFavicon(angle)},300);
 
-const secretLogo=document.getElementById('secretLogo'),secretGame=document.getElementById('secretGame'),gameClose=document.getElementById('gameClose'),monkeyBtn=document.getElementById('monkeyBtn'),scoreEl=document.getElementById('clickScore'),usernameInput=document.getElementById('usernameInput'),startGame=document.getElementById('startGame'),leaderboardList=document.getElementById('leaderboardList');
+const secretLogo=document.getElementById('secretLogo'),secretGame=document.getElementById('secretGame'),gameClose=document.getElementById('gameClose'),monkeyBtn=document.getElementById('monkeyBtn'),scoreEl=document.getElementById('clickScore'),usernameInput=document.getElementById('usernameInput'),startGame=document.getElementById('startGame'),leaderboardList=document.getElementById('leaderboardList'),leaderboardStatus=document.getElementById('leaderboardStatus');
 let logoClicks=0,score=0,currentUser='',playing=false;
-function getLeaderboard(){try{return JSON.parse(localStorage.getItem('circlemodzzLeaderboard')||'[]')}catch(e){return[]}}
-function saveLeaderboard(){try{localStorage.setItem('circlemodzzLeaderboard',JSON.stringify(getLeaderboard()))}catch(e){}}
-function renderLeaderboard(){
-  const board=getLeaderboard().sort((a,b)=>b.score-a.score).slice(0,10);
-  leaderboardList.innerHTML=board.length?board.map(x=>'<li><strong>'+escapeHtml(x.name)+'</strong> — '+x.score+'</li>').join(''):'<li>No scores yet</li>';
-}
+const ONLINE_KEY='circlemodzz-online-leaderboard-8f4c9d2a6e1b3c7d2a9f4b7e';
+const ONLINE_GET='https://api.keyval.org/get/'+ONLINE_KEY;
 function escapeHtml(v){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function cleanBoard(board){
+  return Array.isArray(board)?board.filter(x=>x&&typeof x.name==='string'&&Number.isFinite(Number(x.score))).map(x=>({name:x.name.slice(0,16),score:Math.max(0,Math.floor(Number(x.score)))})).sort((a,b)=>b.score-a.score).slice(0,10):[];
+}
+async function getOnlineLeaderboard(){
+  try{
+    const res=await fetch(ONLINE_GET,{cache:'no-store'});
+    if(!res.ok)throw new Error('GET '+res.status);
+    const text=await res.text();
+    if(!text||text==='null'||text==='undefined')return [];
+    return cleanBoard(JSON.parse(text));
+  }catch(e){
+    leaderboardStatus.textContent='⚠️ Leaderboard offline — retrying';
+    return [];
+  }
+}
+async function setOnlineLeaderboard(board){
+  const compact=JSON.stringify(cleanBoard(board));
+  if(compact.length>300){leaderboardStatus.textContent='⚠️ Score list too large';return false}
+  try{
+    const url='https://api.keyval.org/set/'+ONLINE_KEY+'/'+encodeURIComponent(compact);
+    const res=await fetch(url,{cache:'no-store'});
+    if(!res.ok)throw new Error('SET '+res.status);
+    leaderboardStatus.textContent='🌐 Online leaderboard';
+    return true;
+  }catch(e){
+    leaderboardStatus.textContent='⚠️ Could not sync leaderboard';
+    return false;
+  }
+}
+function renderLeaderboard(board){
+  board=cleanBoard(board);
+  leaderboardList.innerHTML=board.length?board.map((x,i)=>'<li><strong>'+escapeHtml(x.name)+'</strong> — '+x.score+'</li>').join(''):'<li>No scores yet</li>';
+}
+async function refreshLeaderboard(){
+  const board=await getOnlineLeaderboard();
+  renderLeaderboard(board);
+  return board;
+}
 function openSecretGame(){
-  logoClicks=0; score=0; scoreEl.textContent='0'; playing=false;
+  logoClicks=0;score=0;scoreEl.textContent='0';playing=false;
   usernameInput.value=localStorage.getItem('circlemodzzUsername')||'';
   monkeyBtn.disabled=true;
   secretGame.style.display='flex';
   secretGame.setAttribute('aria-hidden','false');
-  renderLeaderboard();
+  leaderboardStatus.textContent='🌐 Loading leaderboard...';
+  refreshLeaderboard();
 }
 function startClicker(){
   const name=usernameInput.value.trim().slice(0,16);
   if(!name){usernameInput.focus();return}
-  currentUser=name; localStorage.setItem('circlemodzzUsername',name);
-  score=0; scoreEl.textContent='0'; playing=true; monkeyBtn.disabled=false;
+  currentUser=name;
+  localStorage.setItem('circlemodzzUsername',name);
+  score=0;scoreEl.textContent='0';playing=true;monkeyBtn.disabled=false;
 }
-function updateScore(){
+async function updateScore(){
   if(!playing)return;
-  score++; scoreEl.textContent=score;
-  const board=getLeaderboard(),existing=board.find(x=>x.name.toLowerCase()===currentUser.toLowerCase());
-  if(existing) existing.score=Math.max(existing.score,score),existing.name=currentUser;
+  score++;scoreEl.textContent=score;
+  if(score%3!==0)return;
+  const board=await getOnlineLeaderboard();
+  const existing=board.find(x=>x.name.toLowerCase()===currentUser.toLowerCase());
+  if(existing){if(score>existing.score)existing.score=score;existing.name=currentUser}
   else board.push({name:currentUser,score});
-  try{localStorage.setItem('circlemodzzLeaderboard',JSON.stringify(board))}catch(e){}
-  renderLeaderboard();
+  const cleaned=cleanBoard(board);
+  renderLeaderboard(cleaned);
+  await setOnlineLeaderboard(cleaned);
+}
+async function finalSync(){
+  if(!playing||score<1)return;
+  const board=await getOnlineLeaderboard();
+  const existing=board.find(x=>x.name.toLowerCase()===currentUser.toLowerCase());
+  if(existing){if(score>existing.score)existing.score=score;existing.name=currentUser}
+  else board.push({name:currentUser,score});
+  const cleaned=cleanBoard(board);
+  renderLeaderboard(cleaned);
+  await setOnlineLeaderboard(cleaned);
 }
 function countSecretTap(e){
-  if(e) e.preventDefault();
+  if(e)e.preventDefault();
   logoClicks++;
-  if(logoClicks>=7) openSecretGame();
+  if(logoClicks>=7)openSecretGame();
 }
 secretLogo.addEventListener('pointerup',countSecretTap);
 secretLogo.addEventListener('touchend',countSecretTap,{passive:false});
@@ -99,9 +148,9 @@ startGame.addEventListener('pointerup',e=>{e.preventDefault();startClicker()});
 startGame.addEventListener('touchend',e=>{e.preventDefault();startClicker()},{passive:false});
 monkeyBtn.addEventListener('pointerup',e=>{e.preventDefault();updateScore()});
 monkeyBtn.addEventListener('touchend',e=>{e.preventDefault();updateScore()},{passive:false});
-gameClose.addEventListener('pointerup',e=>{e.preventDefault();secretGame.style.display='none';secretGame.setAttribute('aria-hidden','true')});
-secretGame.addEventListener('pointerup',e=>{if(e.target===secretGame){secretGame.style.display='none';secretGame.setAttribute('aria-hidden','true')}});
+gameClose.addEventListener('pointerup',async e=>{e.preventDefault();await finalSync();secretGame.style.display='none';secretGame.setAttribute('aria-hidden','true')});
+gameClose.addEventListener('touchend',async e=>{e.preventDefault();await finalSync();secretGame.style.display='none';secretGame.setAttribute('aria-hidden','true')},{passive:false});
+secretGame.addEventListener('pointerup',async e=>{if(e.target===secretGame){await finalSync();secretGame.style.display='none';secretGame.setAttribute('aria-hidden','true')}});
 usernameInput.addEventListener('keydown',e=>{if(e.key==='Enter')startClicker()});
-
 </script>
 </body></html>

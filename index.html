@@ -8,8 +8,8 @@
 *{box-sizing:border-box}body{margin:0;background:#050805;color:#f1fff1;font-family:Arial,sans-serif}header{padding:22px 6%;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #173d17}nav a{color:#b9ffb9;text-decoration:none;margin-left:22px}.logo{font-size:24px;font-weight:900;color:#4cff4c;cursor:pointer;user-select:none}.hero{padding:80px 6%;background:linear-gradient(135deg,#071007,#0d260d)}h1{font-size:64px;margin:0 0 12px}.green{color:#4cff4c}.hero p{color:#a9bda9;font-size:18px}.btn{display:inline-block;margin:18px 10px 0 0;padding:13px 20px;border-radius:9px;background:#39e639;color:#041004;text-decoration:none;font-weight:bold}.btn.alt{background:#102110;color:#baffba;border:1px solid #286228}.section{padding:55px 6%}.search{width:100%;max-width:500px;padding:14px;border-radius:9px;border:1px solid #245224;background:#0b120b;color:white;margin-bottom:25px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}.card{background:#0b120b;border:1px solid #1d461d;border-radius:14px;padding:22px}.card h3{margin-top:0}.card p{color:#9eaf9e;line-height:1.5}.download{display:inline-block;padding:10px 15px;border-radius:8px;background:#35db35;color:#041004;text-decoration:none;font-weight:bold}.patched{display:inline-block;margin-bottom:12px;padding:6px 10px;border-radius:999px;background:#ffb000;color:#1a1100;font-size:12px;font-weight:900;letter-spacing:.5px}footer{padding:30px 6%;border-top:1px solid #173d17;color:#7e927e}
 /* Secret clicker */
 #secretGame{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);align-items:center;justify-content:center;padding:20px}
-.gameBox{width:min(560px,95vw);background:#081008;border:2px solid #39e639;border-radius:20px;padding:26px;text-align:center;box-shadow:0 0 40px rgba(57,230,57,.25)}
-.gameBox h2{margin-top:0;color:#4cff4c}.gameScore{font-size:28px;font-weight:900;margin:10px 0 18px}.monkeyBtn{display:block;width:min(360px,80vw);height:360px;margin:0 auto 18px;border:0;background:transparent;cursor:pointer;transition:transform .08s}.monkeyBtn:active{transform:scale(.9)}.monkeyBtn img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 18px rgba(76,255,76,.35));pointer-events:none}.gameClose{padding:10px 18px;border:1px solid #286228;border-radius:9px;background:#102110;color:#baffba;cursor:pointer;font-weight:bold}
+.gameBox{width:min(760px,95vw);max-height:92vh;overflow:auto;background:#081008;border:2px solid #39e639;border-radius:20px;padding:26px;text-align:center;box-shadow:0 0 40px rgba(57,230,57,.25)}
+.gameBox h2{margin-top:0;color:#4cff4c}.nameRow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:10px 0 18px}.nameInput{width:min(300px,80vw);padding:13px;border-radius:9px;border:1px solid #286228;background:#0b120b;color:white;font-size:16px}.startBtn,.gameClose{padding:12px 18px;border:1px solid #286228;border-radius:9px;background:#39e639;color:#041004;cursor:pointer;font-weight:bold}.gameScore{font-size:28px;font-weight:900;margin:10px 0 18px}.monkeyBtn{display:block;width:min(360px,80vw);height:360px;margin:0 auto 18px;border:0;background:transparent;cursor:pointer;transition:transform .08s}.monkeyBtn:active{transform:scale(.9)}.monkeyBtn img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 18px rgba(76,255,76,.35));pointer-events:none}.leaderboard{margin:20px auto;padding:15px;background:#0b120b;border:1px solid #1d461d;border-radius:14px;max-width:480px;text-align:left}.leaderboard h3{text-align:center;margin:0 0 12px;color:#4cff4c}.leaderboard ol{margin:0;padding-left:28px}.leaderboard li{padding:6px 0;color:#d7ffd7}.muted{color:#7e927e;font-size:13px;margin-top:8px}.gameClose{background:#102110;color:#baffba}
 </style>
 </head>
 <body>
@@ -30,10 +30,19 @@
 <div id="secretGame" aria-hidden="true">
   <div class="gameBox">
     <h2>🐒 SECRET MONKE CLICKER</h2>
+    <div class="nameRow">
+      <input class="nameInput" id="usernameInput" maxlength="16" placeholder="Enter your username">
+      <button class="startBtn" id="startGame">START</button>
+    </div>
     <div class="gameScore">Clicks: <span id="clickScore">0</span></div>
     <button class="monkeyBtn" id="monkeyBtn" aria-label="Click the monkey">
       <img src="https://preview.redd.it/i-will-draw-anyones-gorilla-tag-avatar-v0-cpgd1eiuinwc1.jpeg?width=1080&crop=smart&auto=webp&s=e6097812e9aa051f7b8e4b1a238ca7c2276613d0" alt="Gorilla Tag monkey">
     </button>
+    <div class="leaderboard">
+      <h3>🏆 Leaderboard</h3>
+      <ol id="leaderboardList"><li>No scores yet</li></ol>
+      <div class="muted">Scores are saved on this browser.</div>
+    </div>
     <button class="gameClose" id="gameClose">CLOSE</button>
   </div>
 </div>
@@ -46,12 +55,37 @@ let tabStep=0;setInterval(()=>{document.title=tabFrames[tabStep++%tabFrames.leng
 function setFavicon(angle){const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#050805"/><g transform="rotate(${angle} 32 32)"><circle cx="32" cy="32" r="23" fill="#4cff4c"/><circle cx="24" cy="25" r="5" fill="#050805"/><circle cx="40" cy="25" r="5" fill="#050805"/><path d="M20 40 Q32 50 44 40" fill="none" stroke="#050805" stroke-width="5" stroke-linecap="round"/></g></svg>`;const old=document.querySelector('link[data-circle-favicon]');if(old)old.remove();const link=document.createElement('link');link.rel='icon';link.type='image/svg+xml';link.dataset.circleFavicon='1';link.href='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);document.head.appendChild(link)}
 let angle=0;setFavicon(angle);setInterval(()=>{angle=(angle+30)%360;setFavicon(angle)},300);
 
-const secretLogo=document.getElementById('secretLogo'),secretGame=document.getElementById('secretGame'),gameClose=document.getElementById('gameClose'),monkeyBtn=document.getElementById('monkeyBtn'),scoreEl=document.getElementById('clickScore');
-let logoClicks=0,score=0;
+const secretLogo=document.getElementById('secretLogo'),secretGame=document.getElementById('secretGame'),gameClose=document.getElementById('gameClose'),monkeyBtn=document.getElementById('monkeyBtn'),scoreEl=document.getElementById('clickScore'),usernameInput=document.getElementById('usernameInput'),startGame=document.getElementById('startGame'),leaderboardList=document.getElementById('leaderboardList');
+let logoClicks=0,score=0,currentUser='',playing=false;
+function getLeaderboard(){try{return JSON.parse(localStorage.getItem('circlemodzzLeaderboard')||'[]')}catch(e){return[]}}
+function saveLeaderboard(){try{localStorage.setItem('circlemodzzLeaderboard',JSON.stringify(getLeaderboard()))}catch(e){}}
+function renderLeaderboard(){
+  const board=getLeaderboard().sort((a,b)=>b.score-a.score).slice(0,10);
+  leaderboardList.innerHTML=board.length?board.map(x=>'<li><strong>'+escapeHtml(x.name)+'</strong> — '+x.score+'</li>').join(''):'<li>No scores yet</li>';
+}
+function escapeHtml(v){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function openSecretGame(){
-  logoClicks=0; score=0; scoreEl.textContent='0';
+  logoClicks=0; score=0; scoreEl.textContent='0'; playing=false;
+  usernameInput.value=localStorage.getItem('circlemodzzUsername')||'';
+  monkeyBtn.disabled=true;
   secretGame.style.display='flex';
   secretGame.setAttribute('aria-hidden','false');
+  renderLeaderboard();
+}
+function startClicker(){
+  const name=usernameInput.value.trim().slice(0,16);
+  if(!name){usernameInput.focus();return}
+  currentUser=name; localStorage.setItem('circlemodzzUsername',name);
+  score=0; scoreEl.textContent='0'; playing=true; monkeyBtn.disabled=false;
+}
+function updateScore(){
+  if(!playing)return;
+  score++; scoreEl.textContent=score;
+  const board=getLeaderboard(),existing=board.find(x=>x.name.toLowerCase()===currentUser.toLowerCase());
+  if(existing) existing.score=Math.max(existing.score,score),existing.name=currentUser;
+  else board.push({name:currentUser,score});
+  try{localStorage.setItem('circlemodzzLeaderboard',JSON.stringify(board))}catch(e){}
+  renderLeaderboard();
 }
 function countSecretTap(e){
   if(e) e.preventDefault();
@@ -61,10 +95,13 @@ function countSecretTap(e){
 secretLogo.addEventListener('pointerup',countSecretTap);
 secretLogo.addEventListener('touchend',countSecretTap,{passive:false});
 secretLogo.addEventListener('click',()=>{});
-monkeyBtn.addEventListener('pointerup',e=>{e.preventDefault();score++;scoreEl.textContent=score});
-monkeyBtn.addEventListener('touchend',e=>{e.preventDefault();score++;scoreEl.textContent=score},{passive:false});
+startGame.addEventListener('pointerup',e=>{e.preventDefault();startClicker()});
+startGame.addEventListener('touchend',e=>{e.preventDefault();startClicker()},{passive:false});
+monkeyBtn.addEventListener('pointerup',e=>{e.preventDefault();updateScore()});
+monkeyBtn.addEventListener('touchend',e=>{e.preventDefault();updateScore()},{passive:false});
 gameClose.addEventListener('pointerup',e=>{e.preventDefault();secretGame.style.display='none';secretGame.setAttribute('aria-hidden','true')});
 secretGame.addEventListener('pointerup',e=>{if(e.target===secretGame){secretGame.style.display='none';secretGame.setAttribute('aria-hidden','true')}});
+usernameInput.addEventListener('keydown',e=>{if(e.key==='Enter')startClicker()});
 
 </script>
 </body></html>
